@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aetherbound | Valux Network</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Aetherbound accent overrides */
+        .accent-aether { color: #a78bfa; }
+        .accent-dungeon { color: #f59e0b; }
+        .accent-loot { color: #ef4444; }
+        .accent-extract { color: #10b981; }
+        .accent-party { color: #3b82f6; }
+        .accent-voice { color: #8b5cf6; }
+
+        .info-banner.aether { border-left: 3px solid #a78bfa; }
+        .info-banner.dungeon { border-left: 3px solid #f59e0b; }
+        .info-banner.loot-drop { border-left: 3px solid #ef4444; }
+        .info-banner.aether .info-icon { background: rgba(167, 139, 250, 0.15); }
+        .info-banner.dungeon .info-icon { background: rgba(245, 158, 11, 0.15); }
+        .info-banner.loot-drop .info-icon { background: rgba(239, 68, 68, 0.15); }
+        .info-banner.aether .info-content h4 { color: #a78bfa; }
+        .info-banner.dungeon .info-content h4 { color: #f59e0b; }
+        .info-banner.loot-drop .info-content h4 { color: #ef4444; }
+
+        .step-num.gold { background: #f59e0b; }
+        .step-num.red { background: #ef4444; }
+        .step-num.green { background: #10b981; }
+        .step-num.purple { background: #a78bfa; }
+        .step-num.blue { background: #3b82f6; }
+
+        .loot-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .loot-state.recoverable {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .loot-state.released {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .loot-state.claimed {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .loot-state.protected {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+        }
+
+        .dungeon-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .dungeon-card h5 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .dungeon-card p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .dungeon-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .tag-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .tag.pve { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .tag.pvp { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .tag.puzzle { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .tag.boss { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .tag.voice { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+
+        @media (max-width: 768px) {
+            .dungeon-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="infrastructure.html" class="nav-logo">
+                <span class="logo-icon">◆</span> VALUX NETWORK
+            </a>
+            <div class="nav-links">
+                <a href="infrastructure.html" class="nav-link">Infrastructure</a>
+                <a href="aetherbound.html" class="nav-link active">Aetherbound</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="version-badge">
+                <span class="dot" style="background: #a78bfa; box-shadow: 0 0 6px #a78bfa;"></span> CODE NAME: AETHERBOUND
+            </div>
+            <h1>AETHERBOUND</h1>
+            <p class="subtitle">Drop-in extraction dungeon crawler — loot, survive, extract</p>
+        </div>
+
+        <!-- Key Concepts -->
+        <div class="info-grid">
+            <div class="info-banner aether">
+                <div class="info-icon">🏰</div>
+                <div class="info-content">
+                    <h4>Social Lobby</h4>
+                    <p>Home base where players party up, manage their vault, equip loadouts, and browse dungeons. Persistent social space.</p>
+                </div>
+            </div>
+            <div class="info-banner dungeon">
+                <div class="info-icon">⚔️</div>
+                <div class="info-content">
+                    <h4>Dungeon Instances</h4>
+                    <p>Up to 3 teams (3 players each) drop into PvE dungeon instances. Puzzles, mobs, and a boss. High TPS dedicated servers.</p>
+                </div>
+            </div>
+            <div class="info-banner loot-drop">
+                <div class="info-icon">💀</div>
+                <div class="info-content">
+                    <h4>Death = Drop Everything</h4>
+                    <p>Die and your items drop at your death location. Extract to keep your loot. Re-run the dungeon to recover your gear.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout two-col">
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-card" style="border-left: 3px solid #a78bfa;">
+                    <h4 style="color: #a78bfa;">🎮 Game Overview</h4>
+                    <ul class="sidebar-list">
+                        <li><strong>Genre</strong> — Extraction dungeon crawler</li>
+                        <li><strong>Teams</strong> — Up to 3 teams of 3</li>
+                        <li><strong>PvE</strong> — Mobs, puzzles, bosses</li>
+                        <li><strong>PvP</strong> — Optional, team vs team</li>
+                        <li><strong>Voice Chat</strong> — Optional, proximity-based</li>
+                        <li><strong>Extraction</strong> — Keep items on safe exit</li>
+                        <li><strong>Death</strong> — Drop all items in dungeon</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card" style="border-left: 3px solid #f59e0b;">
+                    <h4 style="color: #f59e0b;">🖥️ Server Architecture</h4>
+                    <ul class="sidebar-list">
+                        <li><strong>Social Lobby</strong> — StatefulSet, 1-3 pods</li>
+                        <li><strong>Dungeon Instance</strong> — Ephemeral Deployments</li>
+                        <li><strong>Dungeon TPS</strong> — Higher tick rate</li>
+                        <li><strong>Dungeon Resources</strong> — 2 vCPU, 4Gi RAM</li>
+                        <li><strong>Instance Lifetime</strong> — Until all players extract or die</li>
+                        <li><strong>Max Concurrent</strong> — 20+ dungeon pods</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card" style="border-left: 3px solid #10b981;">
+                    <h4 style="color: #10b981;">💰 Store Items</h4>
+                    <ul class="sidebar-list">
+                        <li><strong>Life Token</strong> — Keep items on death (1 use)</li>
+                        <li><strong>Vault Expansion</strong> — More vault slots</li>
+                        <li><strong>Cosmetics</strong> — Skins, effects, emotes</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card links">
+                    <h4>📁 Related</h4>
+                    <ul class="sidebar-list">
+                        <li><a href="infrastructure.html">Infrastructure Architecture →</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Center Content -->
+            <div class="center-content">
+
+                <!-- Game Loop -->
+                <div class="content-section">
+                    <h2 class="accent-aether">🔄 Core Game Loop</h2>
+
+                    <p>Aetherbound is an extraction dungeon crawler. You gear up in the social lobby, drop into a dungeon with your team, clear mobs and puzzles, fight a boss, and extract with your loot. If you die, your items drop at your death location in the physical world. Re-queue the same dungeon type and you'll spawn your dropped loot at the same map-relative coordinates in a new instance.</p>
+
+                    <div class="flow-diagram">
+                        <h4>🔁 Player Loop</h4>
+                        <div class="flow-vertical">
+                            <div class="flow-step-card">
+                                <div class="step-num purple">1</div>
+                                <div class="step-content">
+                                    <h5>Social Lobby</h5>
+                                    <p>Join the lobby. Access your vault, equip a loadout, party up with friends, browse available dungeons.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num blue">2</div>
+                                <div class="step-content">
+                                    <h5>Queue for Dungeon</h5>
+                                    <p>Select a dungeon type. Matchmaker fills teams (up to 3 teams × 3 players). A fresh dungeon instance spins up.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num gold">3</div>
+                                <div class="step-content">
+                                    <h5>Dungeon Run</h5>
+                                    <p>Clear rooms, solve puzzles, fight mobs. Collect loot drops from the dungeon environment. Encounter other teams — PvP is optional. Proximity voice chat available.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card" style="border-left: 3px solid #10b981;">
+                                <div class="step-num green">4a</div>
+                                <div class="step-content">
+                                    <h5>Extract Successfully ✓</h5>
+                                    <p>Reach an extraction point. Items in your inventory are saved to your vault. You're returned to the social lobby.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down" style="color: var(--text-muted);">— OR —</div>
+                            <div class="flow-step-card" style="border-left: 3px solid #ef4444;">
+                                <div class="step-num red">4b</div>
+                                <div class="step-content">
+                                    <h5>Die 💀</h5>
+                                    <p>All items drop at your death location. You're returned to the social lobby. Your loot persists at those coordinates tied to the dungeon type.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num purple">5</div>
+                                <div class="step-content">
+                                    <h5>Back to Lobby → Repeat</h5>
+                                    <p>Re-queue the same dungeon type to attempt loot recovery. Your dropped items spawn at the same map coordinates in the new instance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Death and Loot System -->
+                <div class="content-section">
+                    <h2 class="accent-loot">💀 Death &amp; Loot Recovery System</h2>
+
+                    <p>The loot system is the core risk/reward mechanic. When you die, your items aren't gone forever — they persist at the <strong>map-relative coordinates</strong> where you died, tied to the dungeon type. The next time you queue that dungeon, your loot bag spawns at those same coordinates regardless of which instance you land in.</p>
+
+                    <h3>Loot States</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>State</th>
+                            <th>Who Can See It</th>
+                            <th>Duration</th>
+                            <th>Behavior</th>
+                        </tr>
+                        <tr>
+                            <td><span class="loot-state recoverable">⏳ RECOVERABLE</span></td>
+                            <td>Owner only</td>
+                            <td>Until claimed or timer expires</td>
+                            <td>Only the original owner can see and pick up the loot bag</td>
+                        </tr>
+                        <tr>
+                            <td><span class="loot-state released">🔓 RELEASED</span></td>
+                            <td>Anyone</td>
+                            <td>After expiry timer</td>
+                            <td>Loot becomes visible and lootable by any player in the dungeon</td>
+                        </tr>
+                        <tr>
+                            <td><span class="loot-state claimed">✅ CLAIMED</span></td>
+                            <td>N/A</td>
+                            <td>Permanent</td>
+                            <td>Loot has been picked up — record archived</td>
+                        </tr>
+                        <tr>
+                            <td><span class="loot-state protected">🛡️ PROTECTED (Life Token)</span></td>
+                            <td>N/A</td>
+                            <td>N/A</td>
+                            <td>Player had a Life Token — items stay in inventory on death</td>
+                        </tr>
+                    </table>
+
+                    <h3>How Instance Decoupling Works</h3>
+                    <p>Loot records are stored in <strong>PostgreSQL, not in the game instance</strong>. When a dungeon instance spins up, it queries the database for any pending loot bags that match the dungeon type and spawns them at the stored coordinates. This means:</p>
+
+                    <div class="dungeon-grid">
+                        <div class="dungeon-card">
+                            <h5 style="color: #10b981;">✅ Instances Can Die Freely</h5>
+                            <p>Dungeon pods are ephemeral. When all players extract or die, the instance shuts down. Loot persists in Postgres regardless.</p>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #3b82f6;">🔄 Recovery Across Instances</h5>
+                            <p>Re-queue the same dungeon type → new instance → your loot spawns at the same map coordinates. Different instance, same loot location.</p>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #f59e0b;">📍 Map-Relative Coordinates</h5>
+                            <p>Death coordinates are stored relative to the dungeon map, not the K8s pod. Every instance of "Ancient Crypt" has the same map layout.</p>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #ef4444;">⏰ Expiry Timer</h5>
+                            <p>After a configurable period, unclaimed loot transitions from RECOVERABLE to RELEASED — any player running that dungeon can claim it.</p>
+                        </div>
+                    </div>
+
+                    <h3>Database Schema</h3>
+                    <div class="schema-card">
+                        <div class="schema-header">
+                            <h4>aetherbound_deaths</h4>
+                            <span class="schema-type">TABLE</span>
+                        </div>
+                        <div class="schema-body">
+                            <div class="schema-field">
+                                <span class="field-name">id</span>
+                                <span class="field-type">UUID PK</span>
+                                <span class="field-desc">Unique death record identifier</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">player_id</span>
+                                <span class="field-type">UUID FK</span>
+                                <span class="field-desc">Player who died</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">dungeon_type</span>
+                                <span class="field-type">VARCHAR(64)</span>
+                                <span class="field-desc">Which dungeon (e.g., "ancient_crypt", "shadow_forge")</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">death_coords</span>
+                                <span class="field-type">JSONB</span>
+                                <span class="field-desc">Map-relative position: <code>{"x": 142, "y": 64, "z": -203}</code></span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">items</span>
+                                <span class="field-type">JSONB</span>
+                                <span class="field-desc">Serialized item list dropped on death</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">loot_state</span>
+                                <span class="field-type">VARCHAR(16)</span>
+                                <span class="field-desc">RECOVERABLE → RELEASED → CLAIMED</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">died_at</span>
+                                <span class="field-type">TIMESTAMPTZ</span>
+                                <span class="field-desc">When the player died</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">expires_at</span>
+                                <span class="field-type">TIMESTAMPTZ</span>
+                                <span class="field-desc">When loot transitions to RELEASED</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">claimed_by</span>
+                                <span class="field-type">UUID FK</span>
+                                <span class="field-desc">Player who picked up the loot (null until claimed)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Social Lobby -->
+                <div class="content-section">
+                    <h2 class="accent-aether">🏰 Social Lobby</h2>
+
+                    <p>The social lobby is the persistent home base. It runs on a StatefulSet (1-3 pods) and is where players spend time between dungeon runs. It's a full social space with NPCs, activities, and all pre-dungeon systems.</p>
+
+                    <h3>Lobby Features</h3>
+                    <div class="dungeon-grid">
+                        <div class="dungeon-card">
+                            <h5 style="color: #a78bfa;">🗃️ Vault</h5>
+                            <p>Personal item storage. Expandable with store purchases. Items extracted from dungeons go here. Equip loadouts from vault items.</p>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #3b82f6;">🎒 Loadouts</h5>
+                            <p>Multiple saved loadout slots. Pick items from vault to take into the next dungeon. Quick-swap between loadouts.</p>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #f59e0b;">👥 Party System</h5>
+                            <p>Invite friends, form a team of up to 3. Queue together for dungeons. Party leader selects the dungeon.</p>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #10b981;">📋 Dungeon Board</h5>
+                            <p>Browse available dungeons. See difficulty, recommended gear, boss info, and estimated run time. Select and queue.</p>
+                        </div>
+                    </div>
+
+                    <h3>Vault Schema</h3>
+                    <div class="schema-card">
+                        <div class="schema-header">
+                            <h4>aetherbound_vaults</h4>
+                            <span class="schema-type">TABLE</span>
+                        </div>
+                        <div class="schema-body">
+                            <div class="schema-field">
+                                <span class="field-name">player_id</span>
+                                <span class="field-type">UUID PK FK</span>
+                                <span class="field-desc">One vault per player</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">items</span>
+                                <span class="field-type">JSONB</span>
+                                <span class="field-desc">Serialized vault contents</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">vault_slots</span>
+                                <span class="field-type">INT</span>
+                                <span class="field-desc">Max slots (default 50, expandable via store)</span>
+                            </div>
+                            <div class="schema-field">
+                                <span class="field-name">updated_at</span>
+                                <span class="field-type">TIMESTAMPTZ</span>
+                                <span class="field-desc">Last vault modification</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dungeon Instances -->
+                <div class="content-section">
+                    <h2 class="accent-dungeon">⚔️ Dungeon Instances</h2>
+
+                    <p>Dungeons are ephemeral, high-performance game instances. They run at a higher tick rate than the lobby, with more CPU and memory allocated. Each dungeon supports up to 3 teams of 3 players (9 total) and runs until all players have extracted or died.</p>
+
+                    <h3>Dungeon Architecture</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                            <th>Notes</th>
+                        </tr>
+                        <tr>
+                            <td>Max Players</td>
+                            <td><code>9</code></td>
+                            <td>3 teams × 3 players</td>
+                        </tr>
+                        <tr>
+                            <td>Server Resources</td>
+                            <td><code>2 vCPU, 4Gi RAM</code></td>
+                            <td>Bulkier than other server types</td>
+                        </tr>
+                        <tr>
+                            <td>TPS</td>
+                            <td><code>Higher tick rate</code></td>
+                            <td>Performance-critical PvE combat</td>
+                        </tr>
+                        <tr>
+                            <td>Lifecycle</td>
+                            <td><code>Ephemeral</code></td>
+                            <td>Spins up per session, shuts down when empty</td>
+                        </tr>
+                        <tr>
+                            <td>K8s Kind</td>
+                            <td><code>Deployment</code></td>
+                            <td>No persistent storage needed — state in Postgres</td>
+                        </tr>
+                        <tr>
+                            <td>Scaling</td>
+                            <td><code>0 → 20+</code></td>
+                            <td>Discovery service creates pods on-demand from queue</td>
+                        </tr>
+                        <tr>
+                            <td>Discoverable</td>
+                            <td><code>No</code></td>
+                            <td>Created for specific players — no Redis/discovery needed</td>
+                        </tr>
+                    </table>
+
+                    <h3>Dungeon Content</h3>
+                    <p>Each dungeon is a self-contained PvE experience with unique layouts, enemies, puzzles, and a boss encounter. All dungeons share the same server plugin but load different dungeon configurations.</p>
+
+                    <div class="dungeon-grid">
+                        <div class="dungeon-card">
+                            <h5 style="color: #ef4444;">🗡️ Combat (PvE)</h5>
+                            <p>Rooms of enemies to clear. Increasing difficulty as you progress deeper. Mobs drop dungeon-specific loot.</p>
+                            <div class="tag-row">
+                                <span class="tag pve">PvE</span>
+                                <span class="tag boss">BOSS</span>
+                            </div>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #3b82f6;">🧩 Puzzles</h5>
+                            <p>Environmental puzzles that gate progression. Require team coordination. Some have time limits.</p>
+                            <div class="tag-row">
+                                <span class="tag puzzle">PUZZLE</span>
+                                <span class="tag pve">PvE</span>
+                            </div>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #f59e0b;">👑 Boss Encounters</h5>
+                            <p>Final boss at the end of each dungeon. Drops rare loot. Defeating the boss unlocks the extraction point.</p>
+                            <div class="tag-row">
+                                <span class="tag boss">BOSS</span>
+                                <span class="tag pve">PvE</span>
+                            </div>
+                        </div>
+                        <div class="dungeon-card">
+                            <h5 style="color: #ef4444;">⚔️ PvP Encounters (Optional)</h5>
+                            <p>Teams can engage each other. PvP is not required — you can avoid other teams or cooperate. Killing a player drops their loot.</p>
+                            <div class="tag-row">
+                                <span class="tag pvp">PvP</span>
+                                <span class="tag">OPTIONAL</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voice Chat -->
+                <div class="content-section">
+                    <h2 class="accent-voice">🎙️ Voice Chat</h2>
+
+                    <p>Aetherbound supports optional in-game proximity voice chat within dungeon instances. Voice is spatially aware — you hear players louder when they're close, and volume fades with distance. Team voice is always available regardless of distance.</p>
+
+                    <h3>Voice Channels</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Channel</th>
+                            <th>Scope</th>
+                            <th>Range</th>
+                            <th>Default</th>
+                        </tr>
+                        <tr>
+                            <td>Team Voice</td>
+                            <td>Your team only (3 players)</td>
+                            <td>Unlimited</td>
+                            <td>On</td>
+                        </tr>
+                        <tr>
+                            <td>Proximity Voice</td>
+                            <td>All players nearby</td>
+                            <td>~30 blocks</td>
+                            <td>Off (opt-in)</td>
+                        </tr>
+                        <tr>
+                            <td>Lobby Voice</td>
+                            <td>Social lobby proximity</td>
+                            <td>~15 blocks</td>
+                            <td>Off (opt-in)</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Life Token -->
+                <div class="content-section">
+                    <h2 style="color: #a78bfa;">🛡️ Life Token</h2>
+
+                    <p>The Life Token is a purchasable consumable item from the store. When a player with an active Life Token dies in a dungeon, instead of dropping their items, they keep everything in their inventory and are returned to the social lobby. The token is consumed on death.</p>
+
+                    <div class="flow-diagram">
+                        <h4>🛡️ Life Token Flow</h4>
+                        <div class="flow-vertical">
+                            <div class="flow-step-card">
+                                <div class="step-num purple">1</div>
+                                <div class="step-content">
+                                    <h5>Player Purchases Life Token</h5>
+                                    <p>Bought from the in-game store. Stored in vault as a special item. One token = one use.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num gold">2</div>
+                                <div class="step-content">
+                                    <h5>Player Enters Dungeon with Token</h5>
+                                    <p>Token must be in loadout to be active. Server checks for token on death event.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card" style="border-left: 3px solid #ef4444;">
+                                <div class="step-num red">3</div>
+                                <div class="step-content">
+                                    <h5>Player Dies</h5>
+                                    <p>Death event fires. Server checks: does player have Life Token?</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card" style="border-left: 3px solid #a78bfa;">
+                                <div class="step-num purple">4</div>
+                                <div class="step-content">
+                                    <h5>Token Consumed → Items Kept</h5>
+                                    <p>Life Token is removed from inventory. All other items are preserved. Player is returned to lobby with full inventory. No death record is created.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transfer Flow -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-quic);">🔗 Server Transfer Architecture</h2>
+
+                    <p>Aetherbound spans two server types: the social lobby and dungeon instances. Players transfer between them via signed referral packets intercepted by the proxy.</p>
+
+                    <div class="network-diagram">
+                        <h4>📐 Aetherbound Server Layout</h4>
+                        <div class="arch-diagram">
+                            <pre class="code-body" style="line-height: 1.6; font-size: 0.62rem;">
+<span class="kw">┌──────────────────────────────────────────────────────┐</span>
+<span class="kw">│</span>                    <span class="kw">EKS CLUSTER</span>                        <span class="kw">│</span>
+<span class="kw">│</span>                                                      <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">┌────────────────────────────────────┐</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">│       AETHERBOUND SOCIAL LOBBY     │</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">│  ┌───────┐ ┌───────┐ ┌───────┐    │</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">│  │Vault  │ │Party  │ │Dungeon│    │</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">│  │System │ │System │ │Board  │    │</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">│  └───────┘ └───────┘ └──┬────┘    │</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">└─────────────────────────┼──────────┘</span>             <span class="kw">│</span>
+<span class="kw">│</span>                            │ <span class="cmt">queue + referral</span>          <span class="kw">│</span>
+<span class="kw">│</span>               ┌────────────┼───────────────┐          <span class="kw">│</span>
+<span class="kw">│</span>               │            │               │          <span class="kw">│</span>
+<span class="kw">│</span>  <span class="typ">┌────────────┴──┐  ┌──────┴───────┐  ┌───┴────────┐</span><span class="kw">│</span>
+<span class="kw">│</span>  <span class="typ">│ Dungeon Pod 1  │  │ Dungeon Pod 2 │  │ Dungeon Pod │</span><span class="kw">│</span>
+<span class="kw">│</span>  <span class="typ">│ Ancient Crypt  │  │ Shadow Forge  │  │    ...N     │</span><span class="kw">│</span>
+<span class="kw">│</span>  <span class="typ">│ 9 players      │  │ 6 players     │  │             │</span><span class="kw">│</span>
+<span class="kw">│</span>  <span class="typ">│ High TPS       │  │ High TPS      │  │ Ephemeral   │</span><span class="kw">│</span>
+<span class="kw">│</span>  <span class="typ">└────────────────┘  └───────────────┘  └─────────────┘</span><span class="kw">│</span>
+<span class="kw">│</span>       <span class="cmt">↕ referral (extract/death)</span>                      <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">┌────────────────────────────────────┐</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">│    BACK TO SOCIAL LOBBY            │</span>             <span class="kw">│</span>
+<span class="kw">│</span>  <span class="fn">└────────────────────────────────────┘</span>             <span class="kw">│</span>
+<span class="kw">│</span>                                                      <span class="kw">│</span>
+<span class="kw">│</span>  <span class="sec">┌──────────┐</span>                                      <span class="kw">│</span>
+<span class="kw">│</span>  <span class="sec">│PostgreSQL│</span> ← vaults, deaths, loadouts, stats      <span class="kw">│</span>
+<span class="kw">│</span>  <span class="sec">└──────────┘</span>                                      <span class="kw">│</span>
+<span class="kw">└──────────────────────────────────────────────────────┘</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <p>Valux Network &bull; Aetherbound &bull; Extraction Dungeon Crawler</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

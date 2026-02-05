@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infrastructure Architecture | Valux Network</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="infrastructure.html" class="nav-logo">
+                <span class="logo-icon">◆</span> VALUX NETWORK
+            </a>
+            <div class="nav-links">
+                <a href="infrastructure.html" class="nav-link active">Infrastructure</a>
+                <a href="aetherbound.html" class="nav-link">Aetherbound</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="version-badge">
+                <span class="dot"></span> AWS EKS &bull; ARM64 (Graviton c6g)
+            </div>
+            <h1>INFRASTRUCTURE ARCHITECTURE</h1>
+            <p class="subtitle">AWS EKS cluster with QUIC proxy layer, server discovery, and autoscaling</p>
+        </div>
+
+        <!-- Key Principles -->
+        <div class="info-grid">
+            <div class="info-banner quic">
+                <div class="info-icon">🌐</div>
+                <div class="info-content">
+                    <h4>Single NLB Ingress</h4>
+                    <p>One Network Load Balancer as the public entry point. All player traffic flows through a single stable address into the cluster.</p>
+                </div>
+            </div>
+            <div class="info-banner payload">
+                <div class="info-icon">⚡</div>
+                <div class="info-content">
+                    <h4>QUIC Proxy Layer</h4>
+                    <p>Array of QUIC-aware proxy pods behind the NLB. Proxies route clients to game servers within the cluster's private network.</p>
+                </div>
+            </div>
+            <div class="info-banner extract">
+                <div class="info-icon">🔍</div>
+                <div class="info-content">
+                    <h4>PostgreSQL Pub/Sub Discovery</h4>
+                    <p>Server discovery via Postgres <code>LISTEN/NOTIFY</code> — no Redis dependency for routing. A dedicated discovery service bridges Postgres and K8s API.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout two-col">
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-card storage">
+                    <h4>☁️ AWS Services</h4>
+                    <ul class="sidebar-list">
+                        <li><strong>EKS</strong> — Managed Kubernetes control plane</li>
+                        <li><strong>c6g Nodes</strong> — Graviton ARM64 instances</li>
+                        <li><strong>NLB</strong> — Network Load Balancer (L4)</li>
+                        <li><strong>ECR</strong> — Container image registry</li>
+                        <li><strong>CodeArtifact</strong> — Private Maven registry</li>
+                        <li><strong>EBS gp3</strong> — Persistent volumes</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card plugins">
+                    <h4>📦 Server Types</h4>
+                    <ul class="sidebar-list">
+                        <li><strong>Hub</strong> — Default landing, server selector</li>
+                        <li><strong>KitPvP</strong> — Arena PvP gamemode</li>
+                        <li><strong>Aetherbound Social</strong> — Lobby, vault, parties</li>
+                        <li><strong>Aetherbound Dungeon</strong> — PvE raid instances</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card limits">
+                    <h4>🔒 Network Security</h4>
+                    <ul class="sidebar-list">
+                        <li>HMAC-SHA256 signed transfer payloads</li>
+                        <li>30s payload expiry window</li>
+                        <li>Private VPC networking between pods</li>
+                        <li>No direct player-to-backend connections</li>
+                        <li>Proxy validates all referral packets</li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-card links">
+                    <h4>📁 Related</h4>
+                    <ul class="sidebar-list">
+                        <li><a href="aetherbound.html">Aetherbound Gamemode →</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Center Content -->
+            <div class="center-content">
+
+                <!-- Network Topology -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-quic);">🌐 Network Topology</h2>
+
+                    <p>Players connect through a single NLB endpoint. The NLB distributes traffic across an array of QUIC proxy pods which manage the actual game sessions. All inter-server routing happens within the cluster's private network — players never connect directly to game servers.</p>
+
+                    <div class="flow-diagram">
+                        <h4>🔗 Connection Flow</h4>
+                        <div class="flow-vertical">
+                            <div class="flow-step-card">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h5>Player Client</h5>
+                                    <p>Hytale client connects to the public NLB address via QUIC/UDP</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h5>Network Load Balancer (NLB)</h5>
+                                    <p>L4 load balancer distributes UDP traffic across proxy pods. Single stable public IP.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h5>QUIC Proxy Array</h5>
+                                    <p>Stateless proxy pods. Routes new connections to Hub by default. Intercepts referral packets to reroute within cluster.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">4</div>
+                                <div class="step-content">
+                                    <h5>Game Server Pods</h5>
+                                    <p>Hub, KitPvP, Aetherbound Social, or Dungeon instance — all private IPs within the VPC</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Architecture diagram -->
+                    <div class="network-diagram">
+                        <h4>📐 Cluster Layout</h4>
+                        <div class="arch-diagram">
+                            <pre class="code-body" style="line-height: 1.6; font-size: 0.62rem;">
+<span class="cmt">                    ┌─────────────────────────────────────┐</span>
+<span class="cmt">                    │</span>          <span class="str">INTERNET (Players)</span>          <span class="cmt">│</span>
+<span class="cmt">                    └──────────────┬──────────────────────┘</span>
+                                   │
+                          <span class="ann">┌────────┴────────┐</span>
+                          <span class="ann">│    AWS NLB       │</span>
+                          <span class="ann">│ (UDP/QUIC L4)    │</span>
+                          <span class="ann">└────────┬────────┘</span>
+                                   │
+        <span class="kw">┌──────────────────────────────────────────────────────┐</span>
+        <span class="kw">│</span>                    <span class="kw">EKS CLUSTER (VPC)</span>                  <span class="kw">│</span>
+        <span class="kw">│</span>                                                      <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="typ">┌────────┐  ┌────────┐  ┌────────┐</span>               <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="typ">│Proxy-1 │  │Proxy-2 │  │Proxy-N │</span>  ← QUIC       <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="typ">└───┬────┘  └───┬────┘  └───┬────┘</span>    Proxies    <span class="kw">│</span>
+        <span class="kw">│</span>      │          │          │                      <span class="kw">│</span>
+        <span class="kw">│</span>      └──────────┼──────────┘                      <span class="kw">│</span>
+        <span class="kw">│</span>                 │  <span class="cmt">(private network)</span>                <span class="kw">│</span>
+        <span class="kw">│</span>      ┌──────────┼──────────────────────┐          <span class="kw">│</span>
+        <span class="kw">│</span>      │          │          │          │          <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="fn">┌───┴──┐  ┌───┴──┐  ┌───┴──┐  ┌───┴──┐</span>      <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="fn">│Hub×2 │  │KitPvP│  │Social│  │Dung. │</span>      <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="fn">│      │  │      │  │Lobby │  │×0-20 │</span>      <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="fn">└──────┘  └──────┘  └──────┘  └──────┘</span>      <span class="kw">│</span>
+        <span class="kw">│</span>                                                      <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="sec">┌──────────┐</span>  <span class="str">┌──────────┐</span>  <span class="ann">┌─────────────┐</span>  <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="sec">│PostgreSQL│</span>  <span class="str">│  Redis   │</span>  <span class="ann">│  Discovery  │</span>  <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="sec">│ (RDS/Pod)│</span>  <span class="str">│  (Pod)   │</span>  <span class="ann">│  Service    │</span>  <span class="kw">│</span>
+        <span class="kw">│</span>  <span class="sec">└──────────┘</span>  <span class="str">└──────────┘</span>  <span class="ann">└─────────────┘</span>  <span class="kw">│</span>
+        <span class="kw">│</span>                                                      <span class="kw">│</span>
+        <span class="kw">└──────────────────────────────────────────────────────┘</span></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUIC Proxy -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-payload);">⚡ QUIC Proxy Layer</h2>
+
+                    <p>The proxy array is the routing brain of the network. Proxies are stateless pods that sit between the NLB and the game servers. They speak the Hytale QUIC protocol, inspecting packets to handle server transfers entirely within the cluster.</p>
+
+                    <h3>How Referrals Work</h3>
+                    <p>When a game server wants to send a player to another server (e.g., Hub → KitPvP), the server sends the Hytale client a <strong>referral packet</strong> — normally this would tell the client to disconnect and reconnect to a different address. Instead, the proxy <strong>intercepts</strong> this packet and transparently reroutes the QUIC stream to the target pod's internal IP. The client never disconnects from the proxy.</p>
+
+                    <div class="flow-diagram">
+                        <h4>🔄 Server Transfer Flow</h4>
+                        <div class="flow-vertical">
+                            <div class="flow-step-card">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h5>Game Server Issues Referral</h5>
+                                    <p>Hub server sends referral packet: "send player to kitpvp-1 at 10.0.5.23:25565" with HMAC-signed payload</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h5>Proxy Intercepts Referral</h5>
+                                    <p>Proxy validates the HMAC signature and 30s timestamp. Blocks spoofed or expired referrals.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h5>Proxy Reroutes Stream</h5>
+                                    <p>Proxy swaps the upstream connection to the target pod. Client session continues seamlessly — no reconnect needed.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">4</div>
+                                <div class="step-content">
+                                    <h5>Target Server Receives Player</h5>
+                                    <p>KitPvP pod sees a new connection with the signed transfer payload containing player context.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>Proxy Configuration</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                            <th>Notes</th>
+                        </tr>
+                        <tr>
+                            <td>Replicas</td>
+                            <td><code>2-6</code></td>
+                            <td>Scales with player count</td>
+                        </tr>
+                        <tr>
+                            <td>Protocol</td>
+                            <td><code>QUIC/UDP</code></td>
+                            <td>Native Hytale protocol</td>
+                        </tr>
+                        <tr>
+                            <td>Default Route</td>
+                            <td><code>hub-*</code></td>
+                            <td>New connections go to Hub</td>
+                        </tr>
+                        <tr>
+                            <td>Payload Max</td>
+                            <td><code>4KB</code></td>
+                            <td>Hytale referral packet limit</td>
+                        </tr>
+                        <tr>
+                            <td>Payload Signing</td>
+                            <td><code>HMAC-SHA256</code></td>
+                            <td>Shared secret across all servers</td>
+                        </tr>
+                        <tr>
+                            <td>Payload Expiry</td>
+                            <td><code>30s</code></td>
+                            <td>Prevents replay attacks</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Server Discovery -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-survival);">🔍 Server Discovery Service</h2>
+
+                    <p>Server discovery is handled by a dedicated service that bridges PostgreSQL pub/sub with the Kubernetes API. Game servers announce themselves via Postgres <code>LISTEN/NOTIFY</code>, and the discovery service maintains the canonical routing table used by the proxies.</p>
+
+                    <h3>How It Works</h3>
+                    <div class="flow-diagram">
+                        <h4>📡 Discovery Architecture</h4>
+                        <div class="flow-vertical">
+                            <div class="flow-step-card">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h5>Server Boots → Registers via Postgres NOTIFY</h5>
+                                    <p>Game server pod starts up and sends <code>NOTIFY server_registry, '{"id":"hub-1","type":"hub","ip":"10.0.2.15","players":0,"max":100}'</code></p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h5>Discovery Service Receives Event</h5>
+                                    <p>Listens on <code>LISTEN server_registry</code>. Maintains an in-memory routing table of all active servers with health status.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h5>Proxies Query Discovery Service</h5>
+                                    <p>Proxy pods call the discovery service API to resolve server IDs to pod IPs when processing referrals. Responses are cached briefly.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>Discovery Service Responsibilities</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Function</th>
+                            <th>Mechanism</th>
+                            <th>Details</th>
+                        </tr>
+                        <tr>
+                            <td>Server Registration</td>
+                            <td><code>PG NOTIFY</code></td>
+                            <td>Servers announce on startup and heartbeat every 5s</td>
+                        </tr>
+                        <tr>
+                            <td>Server Deregistration</td>
+                            <td><code>PG NOTIFY</code> + TTL</td>
+                            <td>Servers announce shutdown; stale entries expire at 15s</td>
+                        </tr>
+                        <tr>
+                            <td>Routing Table</td>
+                            <td>In-memory + API</td>
+                            <td>Proxies query <code>GET /servers/{type}</code> for live server list</td>
+                        </tr>
+                        <tr>
+                            <td>Autoscaling</td>
+                            <td>K8s API</td>
+                            <td>Monitors player count, adjusts replica counts preemptively</td>
+                        </tr>
+                        <tr>
+                            <td>Health Checks</td>
+                            <td>Heartbeat + K8s</td>
+                            <td>Cross-references heartbeats with K8s pod status</td>
+                        </tr>
+                    </table>
+
+                    <div class="code-block">
+                        <div class="code-head">
+                            <span>PostgreSQL Pub/Sub Protocol</span>
+                        </div>
+                        <div class="code-body">
+<span class="cmt">-- Server announces itself</span>
+<span class="kw">SELECT</span> pg_notify(<span class="str">'server_registry'</span>, <span class="str">'{"action":"register","id":"hub-1","type":"hub","ip":"10.0.2.15","port":25565,"players":42,"max":100}'</span>);
+
+<span class="cmt">-- Server sends heartbeat (every 5s)</span>
+<span class="kw">SELECT</span> pg_notify(<span class="str">'server_registry'</span>, <span class="str">'{"action":"heartbeat","id":"hub-1","players":45}'</span>);
+
+<span class="cmt">-- Server shutting down</span>
+<span class="kw">SELECT</span> pg_notify(<span class="str">'server_registry'</span>, <span class="str">'{"action":"unregister","id":"hub-1"}'</span>);
+
+<span class="cmt">-- Discovery service listens</span>
+<span class="kw">LISTEN</span> server_registry;
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Autoscaling -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-experience);">📈 Autoscaling Strategy</h2>
+
+                    <p>The discovery service doubles as the autoscaler. Rather than reactive HPA scaling (which is too slow for game servers), it <strong>preemptively</strong> adjusts replica counts based on player trends and capacity thresholds.</p>
+
+                    <h3>Scaling Rules</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Server Type</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Scale-Up Trigger</th>
+                            <th>Strategy</th>
+                        </tr>
+                        <tr>
+                            <td>QUIC Proxy</td>
+                            <td><code>2</code></td>
+                            <td><code>6</code></td>
+                            <td>Total player count thresholds</td>
+                            <td>Deployment</td>
+                        </tr>
+                        <tr>
+                            <td>Hub</td>
+                            <td><code>2</code></td>
+                            <td><code>4</code></td>
+                            <td>70% avg capacity across hubs</td>
+                            <td>Deployment</td>
+                        </tr>
+                        <tr>
+                            <td>KitPvP</td>
+                            <td><code>1</code></td>
+                            <td><code>4</code></td>
+                            <td>70% avg capacity</td>
+                            <td>Deployment</td>
+                        </tr>
+                        <tr>
+                            <td>Aetherbound Social</td>
+                            <td><code>1</code></td>
+                            <td><code>3</code></td>
+                            <td>70% capacity</td>
+                            <td>StatefulSet</td>
+                        </tr>
+                        <tr>
+                            <td>Aetherbound Dungeon</td>
+                            <td><code>0</code></td>
+                            <td><code>20+</code></td>
+                            <td>On-demand per queue</td>
+                            <td>Deployment (ephemeral)</td>
+                        </tr>
+                    </table>
+
+                    <h3>Preemptive vs Reactive</h3>
+                    <p>Game server pods take 15-30 seconds to become ready (JVM startup, world load, registry announcement). Reactive scaling would leave players waiting in queues. The discovery service instead monitors trends:</p>
+
+                    <div class="flow-diagram">
+                        <h4>🔮 Preemptive Scaling Logic</h4>
+                        <div class="flow-vertical">
+                            <div class="flow-step-card">
+                                <div class="step-num">1</div>
+                                <div class="step-content">
+                                    <h5>Monitor Capacity</h5>
+                                    <p>Every 10s: calculate average fill rate per server type (e.g., Hubs at 65% capacity)</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">2</div>
+                                <div class="step-content">
+                                    <h5>Predict Demand</h5>
+                                    <p>If fill rate is trending upward and > 70%, spin up new pod(s) before capacity is actually reached</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">3</div>
+                                <div class="step-content">
+                                    <h5>Scale via K8s API</h5>
+                                    <p><code>PATCH /apis/apps/v1/.../scale</code> — increase replica count. New pod boots and registers within 15-30s.</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow-down">↓</div>
+                            <div class="flow-step-card">
+                                <div class="step-num">4</div>
+                                <div class="step-content">
+                                    <h5>Scale-Down with Drain</h5>
+                                    <p>When fill rate drops below 30% and multiple instances exist, mark one as DRAINING (no new players), wait for empty, then remove.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pod Specifications -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-k8s);">🐳 Pod Specifications</h2>
+
+                    <table class="data-table">
+                        <tr>
+                            <th>Pod Type</th>
+                            <th>CPU Req / Limit</th>
+                            <th>Memory Req / Limit</th>
+                            <th>K8s Kind</th>
+                            <th>Persistent Volume</th>
+                        </tr>
+                        <tr>
+                            <td>QUIC Proxy</td>
+                            <td><code>100m / 500m</code></td>
+                            <td><code>128Mi / 256Mi</code></td>
+                            <td>Deployment</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td>Discovery Service</td>
+                            <td><code>100m / 250m</code></td>
+                            <td><code>128Mi / 256Mi</code></td>
+                            <td>Deployment (1)</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td>Hub</td>
+                            <td><code>500m / 1000m</code></td>
+                            <td><code>1Gi / 2Gi</code></td>
+                            <td>Deployment</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td>KitPvP</td>
+                            <td><code>500m / 1000m</code></td>
+                            <td><code>1Gi / 2Gi</code></td>
+                            <td>Deployment</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td>Aetherbound Social</td>
+                            <td><code>500m / 1000m</code></td>
+                            <td><code>1Gi / 2Gi</code></td>
+                            <td>StatefulSet</td>
+                            <td>Optional</td>
+                        </tr>
+                        <tr>
+                            <td>Aetherbound Dungeon</td>
+                            <td><code>1000m / 2000m</code></td>
+                            <td><code>2Gi / 4Gi</code></td>
+                            <td>Deployment</td>
+                            <td>No</td>
+                        </tr>
+                        <tr>
+                            <td>PostgreSQL</td>
+                            <td><code>250m / 1000m</code></td>
+                            <td><code>512Mi / 2Gi</code></td>
+                            <td>StatefulSet (1)</td>
+                            <td>10Gi gp3</td>
+                        </tr>
+                        <tr>
+                            <td>Redis</td>
+                            <td><code>100m / 500m</code></td>
+                            <td><code>128Mi / 512Mi</code></td>
+                            <td>Deployment (1)</td>
+                            <td>1Gi gp3</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Shared Library -->
+                <div class="content-section">
+                    <h2 style="color: var(--accent-hub);">📚 Shared Core Library</h2>
+
+                    <p>All server plugins depend on <code>hytale-network-core</code> — a Kotlin library published to AWS CodeArtifact. It provides database access, Redis pub/sub, transfer signing, permissions, and player caching. Each gamemode is a separate plugin (<code>hytale-hub-plugin</code>, <code>hytale-kitpvp-plugin</code>, <code>hytale-aetherbound-plugin</code>).</p>
+
+                    <div class="folder-tree">
+<span class="folder">hytale-network-core/</span>           <span class="comment"># Shared library (Maven → CodeArtifact)</span>
+├── <span class="folder">src/main/kotlin/com/yournetwork/core/</span>
+│   ├── <span class="file">NetworkCore.kt</span>               <span class="comment"># Singleton init/shutdown</span>
+│   ├── <span class="folder">config/</span>Config.kt             <span class="comment"># Database, Redis config</span>
+│   ├── <span class="folder">database/</span>
+│   │   ├── <span class="file">DatabaseManager.kt</span>        <span class="comment"># HikariCP pool</span>
+│   │   └── <span class="folder">dao/</span>DAOs.kt              <span class="comment"># PlayerDAO, StatsDAO</span>
+│   ├── <span class="folder">redis/</span>
+│   │   ├── <span class="file">RedisManager.kt</span>           <span class="comment"># Lettuce connection pool</span>
+│   │   └── <span class="file">ServerRegistry.kt</span>         <span class="comment"># Discovery + slot reservation</span>
+│   ├── <span class="folder">messaging/</span>MessageBus.kt      <span class="comment"># Cross-server pub/sub</span>
+│   ├── <span class="folder">permissions/</span>RankManager.kt   <span class="comment"># Ranks + permission checking</span>
+│   ├── <span class="folder">player/</span>PlayerManager.kt      <span class="comment"># Cache + NetworkPlayer</span>
+│   └── <span class="folder">transfer/</span>TransferManager.kt  <span class="comment"># HMAC payload signing</span>
+├── <span class="folder">schema/</span>                           <span class="comment"># Atlas migrations</span>
+│   ├── <span class="file">core.sql</span>                      <span class="comment"># players, stats, ranks</span>
+│   └── <span class="file">custom_game.sql</span>               <span class="comment"># Aetherbound-specific tables</span>
+└── <span class="file">atlas.hcl</span>                        <span class="comment"># Atlas config (local/dev/prod)</span>
+                    </div>
+
+                    <h3>Plugin Initialization</h3>
+                    <div class="code-block">
+                        <div class="code-head">
+                            <span>HubPlugin.kt</span>
+                        </div>
+                        <div class="code-body">
+<span class="kw">class</span> <span class="typ">HubPlugin</span>(<span class="fn">init</span>: <span class="typ">JavaPluginInit</span>) : <span class="typ">JavaPlugin</span>(<span class="fn">init</span>) {
+
+    <span class="kw">override fun</span> <span class="fn">setup</span>() {
+        <span class="kw">super</span>.setup()
+
+        <span class="typ">NetworkCore</span>.init {
+            config = <span class="typ">NetworkConfig</span>.fromEnv()
+            serverId = System.getenv(<span class="str">"SERVER_ID"</span>) ?: <span class="str">"hub-1"</span>
+            serverType = <span class="typ">ServerType</span>.HUB
+            discoverable = <span class="kw">true</span>
+        }
+
+        commandRegistry.registerCommand(<span class="typ">HubCommand</span>())
+        entityStoreRegistry.registerSystem(<span class="typ">PlayerConnectionSystems</span>.OnJoin(<span class="kw">this</span>))
+        entityStoreRegistry.registerSystem(<span class="typ">PlayerConnectionSystems</span>.OnQuit(<span class="kw">this</span>))
+    }
+
+    <span class="kw">override fun</span> <span class="fn">shutdown</span>() {
+        <span class="typ">NetworkCore</span>.shutdown()
+        <span class="kw">super</span>.shutdown()
+    }
+}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <p>Valux Network &bull; Infrastructure Architecture &bull; AWS EKS</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
