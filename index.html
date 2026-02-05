@@ -530,66 +530,7 @@
                         </tr>
                     </table>
                 </div>
-
-                <!-- Shared Library -->
-                <div class="content-section">
-                    <h2 style="color: var(--accent-hub);">📚 Shared Core Library</h2>
-
-                    <p>All server plugins depend on <code>hytale-network-core</code> — a Kotlin library published to AWS CodeArtifact. It provides database access, Redis pub/sub, transfer signing, permissions, and player caching. Each gamemode is a separate plugin (<code>hytale-hub-plugin</code>, <code>hytale-kitpvp-plugin</code>, <code>hytale-aetherbound-plugin</code>).</p>
-
-                    <div class="folder-tree">
-<span class="folder">hytale-network-core/</span>           <span class="comment"># Shared library (Maven → CodeArtifact)</span>
-├── <span class="folder">src/main/kotlin/com/yournetwork/core/</span>
-│   ├── <span class="file">NetworkCore.kt</span>               <span class="comment"># Singleton init/shutdown</span>
-│   ├── <span class="folder">config/</span>Config.kt             <span class="comment"># Database, Redis config</span>
-│   ├── <span class="folder">database/</span>
-│   │   ├── <span class="file">DatabaseManager.kt</span>        <span class="comment"># HikariCP pool</span>
-│   │   └── <span class="folder">dao/</span>DAOs.kt              <span class="comment"># PlayerDAO, StatsDAO</span>
-│   ├── <span class="folder">redis/</span>
-│   │   ├── <span class="file">RedisManager.kt</span>           <span class="comment"># Lettuce connection pool</span>
-│   │   └── <span class="file">ServerRegistry.kt</span>         <span class="comment"># Discovery + slot reservation</span>
-│   ├── <span class="folder">messaging/</span>MessageBus.kt      <span class="comment"># Cross-server pub/sub</span>
-│   ├── <span class="folder">permissions/</span>RankManager.kt   <span class="comment"># Ranks + permission checking</span>
-│   ├── <span class="folder">player/</span>PlayerManager.kt      <span class="comment"># Cache + NetworkPlayer</span>
-│   └── <span class="folder">transfer/</span>TransferManager.kt  <span class="comment"># HMAC payload signing</span>
-├── <span class="folder">schema/</span>                           <span class="comment"># Atlas migrations</span>
-│   ├── <span class="file">core.sql</span>                      <span class="comment"># players, stats, ranks</span>
-│   └── <span class="file">custom_game.sql</span>               <span class="comment"># Aetherbound-specific tables</span>
-└── <span class="file">atlas.hcl</span>                        <span class="comment"># Atlas config (local/dev/prod)</span>
-                    </div>
-
-                    <h3>Plugin Initialization</h3>
-                    <div class="code-block">
-                        <div class="code-head">
-                            <span>HubPlugin.kt</span>
-                        </div>
-                        <div class="code-body">
-<span class="kw">class</span> <span class="typ">HubPlugin</span>(<span class="fn">init</span>: <span class="typ">JavaPluginInit</span>) : <span class="typ">JavaPlugin</span>(<span class="fn">init</span>) {
-
-    <span class="kw">override fun</span> <span class="fn">setup</span>() {
-        <span class="kw">super</span>.setup()
-
-        <span class="typ">NetworkCore</span>.init {
-            config = <span class="typ">NetworkConfig</span>.fromEnv()
-            serverId = System.getenv(<span class="str">"SERVER_ID"</span>) ?: <span class="str">"hub-1"</span>
-            serverType = <span class="typ">ServerType</span>.HUB
-            discoverable = <span class="kw">true</span>
-        }
-
-        commandRegistry.registerCommand(<span class="typ">HubCommand</span>())
-        entityStoreRegistry.registerSystem(<span class="typ">PlayerConnectionSystems</span>.OnJoin(<span class="kw">this</span>))
-        entityStoreRegistry.registerSystem(<span class="typ">PlayerConnectionSystems</span>.OnQuit(<span class="kw">this</span>))
-    }
-
-    <span class="kw">override fun</span> <span class="fn">shutdown</span>() {
-        <span class="typ">NetworkCore</span>.shutdown()
-        <span class="kw">super</span>.shutdown()
-    }
-}
-                        </div>
-                    </div>
-                </div>
-
+                
                 <div class="footer">
                     <p>Valux Network &bull; Infrastructure Architecture &bull; AWS EKS</p>
                 </div>
